@@ -1,0 +1,690 @@
+%!IPS-Adobe 3.0
+%%PostScript  calendar sheet for one Georgian year
+%%Creator: Guido Bienhaus
+%%CreationDate: Fri 05 Nov 1993, changed/extended Sat 25 Feb 2012
+%%DocumentFonts: (atend)
+%%For:
+%%Pages: 1
+% %BoundingBox: llx lly urx ury
+%%EndComments
+
+%%% Specify the year to render at the end, as te only parameter to `calendarsheet`
+%%% Search for "%%%" to find the spots where to add
+%%% 1) birthdays
+%%% 2) vacation periods
+%%% 3) day marks
+%%% Currently, only the German set of public holidays is included.
+%%% This can be adapted by modifying getHolidayArrayForMonth.
+
+
+% some useful metric units
+/cm { 28.346456 mul } def
+/mm { 2.8346456 mul } def
+
+%------------------------------------------------------- parameters for a calendar sheet: global variables
+% Sheet size A3:
+% /SheetSizeX 42.0 cm def
+% /SheetSizeY 29.7 cm def
+% Sheet size A4:
+/SheetSizeX 29.7 cm def
+/SheetSizeY 21.0 cm def
+
+% margins for the calendar sheet:
+/UpperMargin 1 cm def
+/LowerMargin 1 cm def
+/LeftMargin  1 cm def
+/RightMargin 1 cm def
+
+/StepX SheetSizeX RightMargin sub LeftMargin sub 12 div def
+/StepY SheetSizeY UpperMargin sub LowerMargin sub 32 div def
+
+/outlinewidth 0.05 def                   % stroke width of outline letters
+
+/NormalFont   /Palatino-Roman def
+/SundayFont   /Palatino-Bold def
+/TitleFont   /Palatino-BoldItalic def
+/HolidayFont /Palatino-Italic def
+% /NormalFont   /Helvetica-Narrow def
+% /SundayFont   /Helvetica-Narrow-Bold def
+% /TitleFont    /Helvetica-Narrow-BoldItalic def
+% /HolidayFont /Helvetica-Narrow-Italic def
+
+/SmallSize     5  SheetSizeY mul 21 cm div def
+/MiniSize      6  SheetSizeY mul 21 cm div def
+/NormalSize    8  SheetSizeY mul 21 cm div def
+/TitleSize    10  SheetSizeY mul 21 cm div def
+
+
+%------------------------------------------------- central procedure: calendarsheet
+
+/calendarsheet {  % syntax: year calendarsheet -> nil
+/year  exch def
+
+/yearStr year 4 string cvs def
+
+/Aweekday [(Mon) (Tue) (Wed) (Thu) (Fri) (Sat) (Sun)] def
+% /Aweekday [(Mo) (Di) (Mi) (Do) (Fr) (Sa) (So)] def
+
+/Amonthsname [(January) (February) (March) (April) (May) (June) (July)
+              (August) (September) (October) (November) (December)] def
+% /Amonthsname [(Januar) (Februar) (Marz) (April) (Mai) (Juni) (Juli)
+%               (August) (September) (Oktober) (November) (Dezember)] def
+
+/showleft   % syntax: x y text showleft: display text left-aligned
+{ 3 dict begin
+  /Text exch def
+  /y exch def
+  /x exch def
+  newpath
+  x y moveto Text show
+  end
+} def
+
+/showright   % syntax: x y text showright: display text right-aligned
+{ 3 dict begin
+  /Text exch def
+  /y exch def
+  /x exch def
+  newpath
+  0 0 moveto Text stringwidth pop x exch sub y moveto Text show
+  end
+} def
+
+/isLeapYear  % syntax: year isLeapYear -> boolean
+{ % determines if a year is a leap year
+  1 dict begin
+  /year exch def
+  % (year mod 4 = 0) and ((year mod 100 <> 0) or (year mod 400 = 0))
+  year 100 mod 0 ne
+  year 400 mod 0 eq or
+  year 4 mod 0 eq and
+  end
+} def
+
+/getDayOfWeek  % syntax: day month year getDayOfWeek -> {0..6}
+{ % returns day of week number for the specified date, 0 = Monday, 6 = Sunday
+  6 dict begin
+  /year exch def
+  /month exch def
+  /day exch def
+  /m [5 1 1 4 6 2 4 0 3 5 1 3] def
+  /r m month 1 sub get def                              % r := m[month];
+  month 3 lt year isLeapYear and { /r r 1 sub def } if    % if (month < 3) and isLeapYear(year) then dec(r);
+  /j year 100 mod def                                     % j := year mod 100;
+  day r add j add j 4 idiv add 8 add year 100 idiv 4 mod 2 mul sub 6 add 7 mod
+    % (day + r + j + j div 4 + 8 - 2*(year div 100 mod 4)) mod 7
+  end
+} def
+
+/getDaysInMonth
+{ 3 dict begin
+  /year exch def
+  /month exch def
+  /lenghts [31 28 31 30 31 30 31 31 30 31 30 31] def
+  month 2 eq year isLeapYear and { 29 } { lenghts month 1 sub get } ifelse
+  end
+} def
+
+/getDayOfYear
+{ 5 dict begin
+  /year exch def
+  /month exch def
+  /day exch def
+  /ms [0 31 59 90 120 151 181 212 242 273 304 334] def
+  /result ms month 1 sub get day add def
+  2 month lt year isLeapYear and { /result result 1 add def } if
+  result
+  end
+} def
+
+/getWeekInYear
+{ 5 dict begin
+  /year exch def
+  /month exch def
+  /day exch def
+  /t day month year getDayOfYear def
+  /w day month year getDayOfWeek def
+  0 w eq { /w 7 def } if
+  /w t 10 add w sub 7 idiv def
+  53 w eq { /w 1 def } if
+  w
+  end
+} def
+
+/EasterDateForYear   % syntax: year EasterDateForYear -> month day
+{ 8 dict begin
+  /year exch def
+  /a year 19 mod def                                                % a := year mod 19;
+  /b year 100 idiv def                                              % b := year div 100;
+  /c year 100 mod def                                               % c := year mod 100;
+  /g b b 8 add 25 idiv sub 1 add 3 idiv def                         % g := (b - (b + 8) div 25 + 1) div 3;
+  /h a 19 mul b add b 4 idiv sub g sub 15 add 30 mod def
+  % h := (19*a + b - (b div 4) - g + 15) mod 30;
+  /l 32 2 b 4 mod mul add 2 c 4 idiv mul add h sub c 4 mod sub 7 mod def
+  % l := (32+ 2*(b mod 4) + 2*(c div 4) - h - (c mod 4)) mod 7;
+  /m a 11 h mul add 22 l mul add 451 idiv def                       % m := (a + 11*h + 22*l) div 451;
+  /a h l add 7 m mul sub 114 add def                                % a := h + l - 7*m + 114
+  a 31 mod 1 add                                                    % day := a mod 31 + 1
+  a 31 idiv                                                         % month := a div 31;
+  end
+} def
+
+/GoodFridayForYear
+{ 3 dict begin
+  /year exch def
+  year EasterDateForYear
+  /month exch def
+  /day exch def
+  2 day lt { day 2 sub month } { 29 day add 3 } ifelse
+  end
+} def
+
+/AscensionDayForYear  % syntax: year AscensionDayForYear -> month day
+% 39 days after EasterDateForYear
+{ 3 dict begin
+  /year exch def
+  year EasterDateForYear
+  /month exch def
+  /day exch def
+  3 month eq
+    { /day day 8 add def
+      30 day lt { day 30 sub 5 } { day 4 } ifelse }
+    { /day day 9 add def
+      31 day lt { day 31 sub 6 } { day 5 } ifelse }
+  ifelse
+  end
+} def
+
+/WhitsundayForYear  % 49 days after EasterDateForYear, 10 days after AscensionDayForYear
+{ 3 dict begin
+  /year exch def
+  year AscensionDayForYear
+  /month exch def
+  /day exch 10 add def
+  4 month eq
+    { 30 day lt { day 30 sub 5 } { day 4 } ifelse }
+    { 31 day lt { day 31 sub 6 } { day month } ifelse }
+  ifelse
+  end
+} def
+
+/CorpusChristiDayForYear  % 60 days after EasterDateForYear,  11 days after WhitsundayForYear
+{ 3 dict begin
+  /year exch def
+  year WhitsundayForYear
+  /month exch def
+  /day exch def
+  5 month eq
+    { /day day 11 add def
+      31 day lt { day 31 sub 6 } { day 5 } ifelse }
+    { day 11 add month }
+  ifelse
+  end
+} def
+
+/Advent  % Syntax: Nr year Advent -> day month
+{ 6 dict begin
+  /year exch def
+  /Nr exch def
+  /W 24 12 year getDayOfWeek def
+  /day 23 W sub def
+  /month 12 def
+  3 -1 Nr {
+    /garbage exch def
+    day 8 lt
+      { /day 24 day add def /month 11 def }
+      { /day day 7 sub def }
+    ifelse
+  } for
+  day month
+  end
+} def
+
+/YomKippur
+{ 6 dict begin
+  /year exch def
+  /G year 19 mod 1 add def
+  % N + fraction =
+  % {[Y/100] - [Y/400] - 2} + 765433/492480*Remainder(12G|19) + Remainder(Y|4)/4 - (313Y+89081)/98496
+  /result year 100 div year 400 div sub 2 sub def
+  % 765433/492480*Remainder(12G|19)
+  /result result 765433 492480 div 12 G mul 19 mod mul add def
+  % Remainder(Y|4)/4
+  /result result year 4 mod div 4 add def
+  /result result 313 year mul 89081 add 98496 div sub def
+  /N result truncate def
+  /fraction result N sub def
+% TODO FAILS HERE!!
+  % /wochenday N 9 year getDayOfWeek def
+  1 2
+  end
+} def
+
+/getHolidayArrayForMonth  % returns an array of holidays for the given month
+{ 20 dict begin
+  /year exch def
+  /month exch def
+  year EasterDateForYear
+  /OM exch def
+  /OT exch def
+  year GoodFridayForYear
+  /KM exch def
+  /KT exch def
+  year AscensionDayForYear
+  /HM exch def
+  /HT exch def
+  year WhitsundayForYear
+  /PM exch def
+  /PT exch def
+  year CorpusChristiDayForYear
+  /FM exch def
+  /FT exch def
+%  year YomKippur
+%  /YM exch def
+%  /YT exch def
+  1 year Advent
+  /AM exch def
+  /AT exch def
+  [
+  1 month eq
+    { 1 (NewYearsDay) 6 (Epiphanias) }   %if we have this month, save day nummbr and holiday name
+    { 5 month eq  % Mai
+      { 1 (Labor day) }
+      { 10 month eq  % Oktober
+        { 3 (German national holiday) }
+        { 11 month eq  % November
+          { 1 (All Saints) }
+          { 12 month eq  % December
+            { 25 (1st Xmas day)
+              26 (2nd Xmas day)
+              2 year Advent pop (2nd advent)
+              3 year Advent pop (3rd advent)
+              4 year Advent pop (4th advent) }
+            if }
+          ifelse }
+        ifelse }
+      ifelse }
+  ifelse
+  KM month eq { KT (GoodFridayForYear) } if
+  OM month eq { OT (EasterDateForYear)
+                 OT 31 lt { OT 1 add (EasterMonday) } if  % EasterMonday
+               } if
+  OM 1 add month eq OT 31 eq and { 1 (Easter Monday) } if
+    %!!! fails if Easter Sunday is on March 31 (as in 1991)
+    % wenn String leer, nur day in Italics
+  HM month eq { HT (Ascension Day) } if
+  PM month eq { PT (Whitsunday) PT 1 add () } if
+  FM month eq { FT (Corpus Christi) } if
+  AM month eq { AT (1st advent) } if
+  ]
+  end
+} def
+
+/isHoliday  % returns -1 if day is not a holiday, otherise the index of the name of the holiday
+{ 4 dict begin
+  /day exch def  % lokale daynummer
+  /holidayList exch def    % lokale Feierdaysliste
+  /result -1 def
+  0 2 holidayList length 2 sub {
+    /k exch def
+    holidayList k get day eq { /result k 1 add def } if  % wenn daynummer in Liste, Namensindex in /result speichern
+  } for
+  result
+  end
+} def
+
+/getPeriodsArray % returns Array of periods for the specified year
+{ 2 dict begin
+  /year exch def
+  [
+  % general format: day (of month), length (in days), text (to display), stack level
+  % (wrong) holidays 2021 for NRW and BY, for demo purposes:
+  2021 year eq {  1  1 year getDayOfYear  6 (Weihnachtsferien BY) 4 } if
+  2021 year eq {  1  1 year getDayOfYear  6 (Weihnachtsferien NRW) 3 } if
+  2021 year eq { 4  3 year getDayOfYear  5 (Winterferien BY) 4 } if
+  2021 year eq { 26  3 year getDayOfYear 13 (Osterferien NRW) 3 } if
+  2021 year eq { 15  4 year getDayOfYear 13 (Osterferien BY) 4 } if
+  2021 year eq { 22  5 year getDayOfYear  5 (Pfingstferien NRW) 3 } if
+  2021 year eq { 11  6 year getDayOfYear 11 (Pfingstferien BY) 4 } if
+  2021 year eq { 16  7 year getDayOfYear 44 (Sommerferien NRW) 3 } if
+  2021 year eq { 29  7 year getDayOfYear 43 (Sommerferien BY) 4 } if
+  2021 year eq { 15 10 year getDayOfYear 12 (Herbstferien NRW) 3 } if
+  2021 year eq { 28 10 year getDayOfYear  6 (Herbstferien BY) 4 } if
+  2021 year eq { 21 12 year getDayOfYear 12 (Weihnachtsferien NRW) 3 } if
+  2021 year eq { 23 12 year getDayOfYear 12 (Weihnachtsferien BY) 4 } if
+  
+  %%% add vacation periods here: startDay startMonth year getDayOfYear lengthInDyas (name) slot/color
+  ]
+  end
+} def
+
+% arguments: day month year level periodList
+% this function returns -1 if the specified day is not in a period on the specified level,
+% or the index of the day in the period (the n in "nth day of summer holidays")
+/getPeriodDayOnLevel
+{ 10 dict begin
+  /periodList exch def
+  /level exch def
+  /year exch def
+  /month exch def
+  /day exch def
+  /doy day month year getDayOfYear def
+  /resultLength 0 def
+  /resultIndex -1 def
+  /resultString () def
+
+  % traverse the period list, looking for periods that include the date:
+  0 4 periodList length 4 sub {
+    /k exch def
+    % are we on the right level?
+    periodList k 3 add get level eq {
+    /pdoy periodList k get def
+    /plength periodList k 1 add get def
+    % if the day falls into that period, set the result:
+    doy pdoy ge doy pdoy plength add lt and {
+      % get the n in "nth day in period":
+    /resultIndex doy pdoy sub def
+    % get the name of the period:
+    /resultString periodList k 2 add get def
+    /resultLength periodList k 1 add get def
+    } if
+  } if
+  } for
+  resultLength resultString resultIndex
+  end
+} def
+
+% returns -1 if the specified day of the year is not the beginning of
+% a period, otherwise the index of the period in the list
+/getPeriodIndex
+{ 4 dict begin
+  /dayOfYear exch def  % lokale daynummer
+  /periodList exch def    % lokale Periodenliste
+  /result -1 def
+  0 4 periodList length 4 sub {
+    /k exch def
+    % if dayOfYear in list, save its index in /result:
+    periodList k get dayOfYear eq { /result k def } if
+  } for
+  result
+  end
+} def
+
+/getBirthdayArrayForMonth % liefert Array von Geburtsdayen fuer den jeweils betreffenden month
+{ 2 dict begin
+  /year exch def
+  /month exch def
+  [
+  1 month eq { 16 (Lisette 1968) } if
+  3 month eq { 29 (Darren 1968) } if
+  %%% add additional birthdays here, as above
+  ]
+  end
+} def
+
+/isBirthday  % returns -1 if not a birthday, otherwise the index of the name in birthdayList
+{ 4 dict begin
+  /day exch def             % local day number
+  /birthdayList exch def    % local birthday list
+  /result -1 def
+  0 2 birthdayList length 2 sub {
+    /k exch def
+    birthdayList k get day eq { /result k 1 add def } if  % wenn daynummer in Liste, Namensindex in /r speichern
+  } for
+  result
+  end
+} def
+
+/getDayMarksArrayForMonth % returns array of DayMarks for the specified month
+{ 2 dict begin
+  /year exch def
+  /month exch def
+  [
+  1 month eq {  9 (new year's reception) } if
+  %%% add more dates to display here, as above
+  ]
+  end
+} def
+
+/isDayMark  % returns -1 if there's no mark for the day, otherwise the index of the record
+{ 4 dict begin
+  /day exch def  % local day number
+  /dayMarkList exch def    % local day marks list
+  /result -1 def
+  0 2 dayMarkList length 2 sub {
+    /k exch def
+    dayMarkList k get day eq { /result k 1 add def } if  % wenn daynummer in Liste, Namensindex in /r speichern
+  } for
+  result
+  end
+} def
+
+/trifill  % marker for weekend days and public holidays
+{ 4 dict begin
+  /dy exch def
+  /dx exch def
+  /lly exch def
+  /llx exch def
+  llx lly moveto
+  llx dx add lly lineto
+  % urx ury lineto
+  llx lly dy add lineto
+  closepath fill
+  end
+} def
+
+/drawDayBox  % draws the box for the day
+{ 8 dict begin
+  /holidayOffset exch def
+  /dayOfWeek exch def
+  /month exch def
+  /day exch def
+  /llx LeftMargin month StepX mul add def
+  /lly SheetSizeY UpperMargin sub StepY day 1 add mul sub def
+  /xfactor 0.6 def   % this is how wide the lower-left triangle is on x axis, as fraction of "day box width"
+  /yfactor 0.8 def   % this is how tall the lower-left triangle is on y axis, as fraction of "day box height"
+
+  % if we have a Sunday, show in bold:
+  dayOfWeek 6 eq -1 holidayOffset ne or {
+    1.0 0.5 0.5 setrgbcolor
+    % lower left triangle:
+    % llx lly StepX xfactor mul StepY yfactor mul trifill
+    % filled circle:
+    llx StepY 0.5 mul add lly StepY 0.5 mul add StepY 0.4 mul 0 360 arc fill closepath
+    0 0 0 setrgbcolor
+  } {
+    % NormalFont findfont NormalSize scalefont setfont
+  } ifelse
+  % Saturdays light gray background:
+  dayOfWeek 5 eq {
+    1.0 0.5 0.5 setrgbcolor
+    % lower left triangle:
+    % llx lly StepX xfactor mul StepY yfactor mul trifill
+    % filled circle:
+    llx StepY 0.5 mul add lly StepY 0.5 mul add StepY 0.4 mul 0 360 arc fill closepath
+    0 0 0 setrgbcolor
+  } if
+
+  % normal rectangular box:
+  % llx lly StepX StepY rectstroke
+  % line below day:
+  0.1 setlinewidth
+  llx lly moveto
+  llx StepX 0.9 mul add lly lineto
+  stroke
+
+  % leave lower left x and lower left y on the stack:
+  llx lly
+  end
+} def
+
+
+%------------------------------------------------------------ here we go: main procedure
+
+gsave
+
+/periodList year getPeriodsArray def
+
+% step through the months:
+0 1 11 {
+  /month exch def
+  % fill in the month names:
+  TitleFont findfont
+  % StepY 2 mm sub
+  TitleSize scalefont setfont
+  LeftMargin month StepX mul add 2 mm add
+    SheetSizeY UpperMargin sub StepY sub 2 mm add
+      Amonthsname month get showleft
+  % For January, also print the year number separated by a space from the month name:
+  0 month eq {
+    ( ) show year 4 string cvs show
+  } if
+
+  % calculate holidays:
+  % getHolidayArrayForMonth puts an array of holidays for the current month onto the stack:
+  /holidayList month 1 add year getHolidayArrayForMonth def
+  /birthdayList month 1 add year getBirthdayArrayForMonth def
+  /dayMarksList month 1 add year getDayMarksArrayForMonth def
+
+  /stripWidth StepY 0.3 mul def
+  /ml month 1 add year getDaysInMonth def
+
+  % fill in the days:
+  NormalFont findfont % StepY 2 mm sub
+  NormalSize scalefont setfont
+  /ml month 1 add year getDaysInMonth def
+  1 1 ml {
+    /day exch def
+    /dow day month 1 add year getDayOfWeek def
+    /doy day month 1 add year getDayOfYear def
+    /daystr day 2 string cvs def
+
+    % is this part of a period? Look for each level:
+    gsave
+    1 1 10 {
+        /level exch def
+        % this puts two values on the stack, the day index and the name of the period:
+        day month 1 add year level periodList getPeriodDayOnLevel
+        /index exch def
+        /periodName exch def  % the 2nd result on the stack
+        /periodLength exch def  % 3rd result on stack:
+        -1 index ne {
+        % similar calc in drawDayBox: calculate lower-left corner coordinate of day when period begins:
+        /llx LeftMargin month StepX mul add StepX 0.4 mul add stripWidth level mul add def
+        /lly SheetSizeY UpperMargin sub StepY day mul sub def
+        % color selection:
+        1 level eq { 0.5 0.9 1.0 setrgbcolor } if
+        2 level eq { 1.0 1.0 0.5 setrgbcolor } if
+        3 level eq { 1.0 0.8 0.4 setrgbcolor } if
+        % 2 level eq { 129 256 div 197 256 div 46 256 div setrgbcolor } if
+        4 level eq { 0.6 1.0 0.6 setrgbcolor } if
+        5 level eq { 1.0 0.7 1.0 setrgbcolor } if
+        % the actual drawing:
+        newpath
+        llx lly moveto
+        llx stripWidth add lly lineto
+        llx stripWidth add lly StepY sub lineto
+        llx lly StepY sub lineto
+        closepath fill stroke
+        % display the name of the period:
+        0 index eq
+        1 index eq or
+        3 index eq or
+        day index gt and {
+          gsave
+          0 0 0.7 setrgbcolor
+          llx NormalSize stripWidth sub 2 div add lly 0.3 NormalSize mul sub StepY index mul add moveto
+          -90 rotate
+          NormalFont findfont
+          SmallSize scalefont setfont
+          periodName show
+          grestore
+        } if
+        } if
+    } for
+    grestore
+
+    % is this a holiday?
+    /holidayOffset holidayList day isHoliday def
+    /birthdayOffset birthdayList day isBirthday def
+    /dayMarksOffset dayMarksList day isDayMark def
+
+    day month dow holidayOffset drawDayBox  % drawDayBox leaves llx,lly on the stack!
+
+    /lly exch def
+    /llx exch def
+
+    % Wednesdays: draw the week number
+    dow 1 eq {
+      0.8 0.8 0.8 setrgbcolor
+      /wiy day month 1 add year getWeekInYear 2 string cvs def
+      SundayFont findfont TitleSize 3 mul scalefont setfont
+      llx StepX 0.4 mul add
+        lly 1 mm add StepY sub
+        moveto wiy show
+      0 0 0 setrgbcolor
+    } if
+
+    % display the day number:
+    NormalFont findfont NormalSize scalefont setfont
+      % SundayFont findfont NormalSize scalefont setfont
+    llx NormalSize add 1 mm add
+      lly 1.5 mm add
+      daystr showright
+    ( ) show
+    % print the day name abbreviation:
+    Aweekday dow get show
+    % print the holiday name if it's a holiday:
+    -1 holidayOffset ne {
+      NormalFont findfont SmallSize scalefont setfont
+      (  ) show holidayList holidayOffset get show
+    } if
+    % print the birthday name if it's a holiday:
+    -1 birthdayOffset ne {
+      NormalFont findfont SmallSize scalefont setfont
+      (  ) show birthdayList birthdayOffset get show
+    } if
+        -1 dayMarksOffset ne {
+            gsave
+      NormalFont findfont MiniSize scalefont setfont
+            0 0 1 setrgbcolor  % set color to blue
+            % show the text right-aligned:
+            llx StepX add 3 mm sub lly StepY add 3 mm sub % moveto
+      dayMarksList dayMarksOffset get showright
+        % HERE
+            0 0 moveto dayMarksList dayMarksOffset get stringwidth pop /x exch def
+            newpath
+            llx StepX add 3 mm sub x sub lly StepY add 3 mm sub moveto
+      dayMarksList dayMarksOffset get true charpath pathbbox
+            /y2 exch 2 add def /x2 exch 2 add def /y1 exch 2 sub def /x1 exch 2 sub def
+            x1 y1 moveto x2 y1 lineto x2 y2 lineto x1 y2 lineto closepath stroke
+            grestore
+        } if
+  } for
+} for
+
+grestore
+
+} def  % calendarsheet
+
+%------------------------------------------------------------ Hauptteil
+
+% 2 2 scale
+
+gsave
+
+0.1 setlinewidth
+
+% tilt A3 or A4 in landscape:
+SheetSizeY 0 cm translate
+90 rotate
+% check: 0 cm 0 cm moveto 8 cm 8 cm lineto 8 cm 0 cm lineto 0 cm 8 cm lineto stroke
+%%% specify the year in the following line:
+2021 calendarsheet
+
+showpage
+
+%%Trailer
+%%DocumentFonts NormalFont KWFont TitleFont HolidayFont
+
+%%EndOfDocument
