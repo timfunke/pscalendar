@@ -40,14 +40,14 @@
 
 /outlinewidth 0.05 def                   % stroke width of outline letters
 
-/NormalFont   /Palatino-Roman def
-/SundayFont   /Palatino-Bold def
-/TitleFont   /Palatino-BoldItalic def
-/HolidayFont /Palatino-Italic def
-% /NormalFont   /Helvetica-Narrow def
-% /SundayFont   /Helvetica-Narrow-Bold def
-% /TitleFont    /Helvetica-Narrow-BoldItalic def
-% /HolidayFont /Helvetica-Narrow-Italic def
+% /NormalFont   /Palatino-Roman def
+% /SundayFont   /Palatino-Bold def
+% /TitleFont    /Palatino-BoldItalic def
+% /HolidayFont  /Palatino-Italic def
+/NormalFont   /Helvetica-Narrow def
+/SundayFont   /Helvetica-Narrow-Bold def
+/TitleFont    /Helvetica-Narrow-BoldItalic def
+/HolidayFont  /Helvetica-Narrow-Italic def
 
 /SmallSize     5  SheetSizeY mul 21 cm div def
 /MiniSize      6  SheetSizeY mul 21 cm div def
@@ -125,7 +125,7 @@
   end
 } def
 
-/getDayOfYear
+/getDayOfYear  % gets the day number in the year for the specified day
 { 5 dict begin
   /year exch def
   /month exch def
@@ -341,17 +341,17 @@
   % (wrong) holidays 2021 for NRW and BY, for demo purposes:
   2021 year eq {  1  1 year getDayOfYear  6 (Weihnachtsferien BY) 4 } if
   2021 year eq {  1  1 year getDayOfYear  6 (Weihnachtsferien NRW) 3 } if
-  2021 year eq { 4  3 year getDayOfYear  5 (Winterferien BY) 4 } if
-  2021 year eq { 26  3 year getDayOfYear 13 (Osterferien NRW) 3 } if
-  2021 year eq { 15  4 year getDayOfYear 13 (Osterferien BY) 4 } if
-  2021 year eq { 22  5 year getDayOfYear  5 (Pfingstferien NRW) 3 } if
-  2021 year eq { 11  6 year getDayOfYear 11 (Pfingstferien BY) 4 } if
-  2021 year eq { 16  7 year getDayOfYear 44 (Sommerferien NRW) 3 } if
-  2021 year eq { 29  7 year getDayOfYear 43 (Sommerferien BY) 4 } if
-  2021 year eq { 15 10 year getDayOfYear 12 (Herbstferien NRW) 3 } if
-  2021 year eq { 28 10 year getDayOfYear  6 (Herbstferien BY) 4 } if
-  2021 year eq { 21 12 year getDayOfYear 12 (Weihnachtsferien NRW) 3 } if
-  2021 year eq { 23 12 year getDayOfYear 12 (Weihnachtsferien BY) 4 } if
+  2021 year eq { 15  2 year getDayOfYear  5 (Winterferien BY) 4 } if
+  2021 year eq { 29  3 year getDayOfYear 13 (Osterferien NRW) 3 } if
+  2021 year eq { 29  3 year getDayOfYear 13 (Osterferien BY) 4 } if
+  2021 year eq { 25  5 year getDayOfYear  1 (Pfingstferien NRW) 3 } if
+  2021 year eq { 25  5 year getDayOfYear 11 (Pfingstferien BY) 4 } if
+  2021 year eq {  5  7 year getDayOfYear 44 (Sommerferien NRW) 3 } if
+  2021 year eq { 30  7 year getDayOfYear 43 (Sommerferien BY) 4 } if
+  2021 year eq { 11 10 year getDayOfYear 12 (Herbstferien NRW) 3 } if
+  2021 year eq {  2 11 year getDayOfYear  6 (Herbstferien BY) 4 } if
+  2021 year eq { 24 12 year getDayOfYear 12 (Weihnachtsferien NRW) 3 } if
+  2021 year eq { 24 12 year getDayOfYear 12 (Weihnachtsferien BY) 4 } if
   
   %%% add vacation periods here: startDay startMonth year getDayOfYear lengthInDyas (name) slot/color
   ]
@@ -484,12 +484,13 @@
   /xfactor 0.6 def   % this is how wide the lower-left triangle is on x axis, as fraction of "day box width"
   /yfactor 0.8 def   % this is how tall the lower-left triangle is on y axis, as fraction of "day box height"
 
-  % if we have a Sunday, show in bold:
+  % if we have a Sunday, show in bold and mark visually
   dayOfWeek 6 eq -1 holidayOffset ne or {
     1.0 0.5 0.5 setrgbcolor
     % lower left triangle:
     % llx lly StepX xfactor mul StepY yfactor mul trifill
     % filled circle:
+    llx StepY 0.5 mul add lly StepY 0.5 mul add moveto
     llx StepY 0.5 mul add lly StepY 0.5 mul add StepY 0.4 mul 0 360 arc fill closepath
     0 0 0 setrgbcolor
   } {
@@ -501,6 +502,7 @@
     % lower left triangle:
     % llx lly StepX xfactor mul StepY yfactor mul trifill
     % filled circle:
+    llx StepY 0.5 mul add lly StepY 0.5 mul add moveto
     llx StepY 0.5 mul add lly StepY 0.5 mul add StepY 0.4 mul 0 360 arc fill closepath
     0 0 0 setrgbcolor
   } if
